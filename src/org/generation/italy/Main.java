@@ -4,8 +4,12 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 import org.generation.italy.model.Movimento;
@@ -16,7 +20,8 @@ public class Main {
 		String url="jdbc:mysql://localhost:3306/magazzino";	//stringa di connessione (in questo caso per MySql, ma potrebbe essere diversa per altre tipologie di DBMS)
 		Scanner sc=new Scanner(System.in);
 		DateTimeFormatter df=DateTimeFormatter.ofPattern("dd/MM/yyyy");
-		
+		ArrayList<Movimento> elencoMovimenti=new ArrayList<Movimento>();
+		Movimento m;
 		//significato parti della stringa:
 		// jdbc: Java Data Base Connectivity (API da utilizzare per connettersi al DB)
 		// mysql: tipologia di DBMS (Data Base Management System)
@@ -31,7 +36,7 @@ public class Main {
 			
 			System.out.println("*** INSERIMENTO MOVIMENTO ***");
 			
-			Movimento m=new Movimento();
+			m=new Movimento();
 			
 			//leggo i dati del movimento
 			System.out.print("Id: ");
@@ -63,7 +68,7 @@ public class Main {
 			
 			
 			String sql="INSERT INTO movimenti(id, data, codProdotto, codMovimento, quantità) "
-					+ "VALUES(?, ?, ?, ?, ?)";		//il ? indica un parametro (segnaposto)
+					+ "VALUE(?, ?, ?, ?, ?)";		//il ? indica un parametro (segnaposto)
 			
 			System.out.println("Tentativo di esecuzione INSERT");
 			try (PreparedStatement ps=conn.prepareStatement(sql)) {		//provo a creare l'istruzione sql
@@ -80,7 +85,38 @@ public class Main {
 				System.out.println("Righe inserite: "+righeInteressate);
 			}
 			
-		} catch (Exception e) {
+			System.out.println("\n\n\n\n");
+			System.out.println("*** ELENCO MOVIMENTI ***");
+			
+			sql="SELECT * FROM movimenti"; 			// oppure, in caso di parametri: "SELECT * FROM movimenti WHERE id=?";
+			try (PreparedStatement ps=conn.prepareStatement(sql)) {		//provo a creare l'istruzione sql
+				try (ResultSet rs=ps.executeQuery()) {	//il ResultSet mi consente di scorrere il risultato della SELECT una riga alla volta
+					
+					//scorro tutte le righe
+					while (rs.next()) {		//rs.next() restituisce true se c'è ancora qualche riga da leggere, falso altrimenti
+						m=new Movimento();
+						m.id=rs.getInt("id");		//recupero il valore della colonna "id"
+						m.data=rs.getDate("Data").toLocalDate();
+						m.codiceProdotto=rs.getString("codProdotto");
+						m.codiceMovimento=rs.getString("codMovimento");
+						m.quantità=rs.getInt("quantità");
+						elencoMovimenti.add(m);						
+					}
+				}
+			}
+			//stampo i movimenti letti dal DB
+ 			for (Movimento mov:elencoMovimenti)
+ 				System.out.println(mov.toString());
+			
+		} catch (SQLTimeoutException e) {
+			//si è verificato un timeout
+			System.err.println("Ricordati di far partire il DBMS!");
+		}
+		catch (SQLException e) {
+			//si è verificato un problema SQL
+			System.err.println("Errore SQL: "+e.getMessage());
+		}
+		catch (Exception e) {	//catch che gestisce tutti i tipi di eccezione
 			//si è verificato un problema. L'oggetto e (di tipo Exception) contiene informazioni sull'errore verificatosi
 			System.err.println("Si è verificato un errore: "+e.getMessage());
 		}
