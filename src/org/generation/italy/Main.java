@@ -1,11 +1,14 @@
 package org.generation.italy;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
+
+import org.generation.italy.model.Movimento;
 
 public class Main {	
 
@@ -28,38 +31,49 @@ public class Main {
 			
 			System.out.println("*** INSERIMENTO MOVIMENTO ***");
 			
+			Movimento m=new Movimento();
 			
 			//leggo i dati del movimento
 			System.out.print("Id: ");
-			int id=sc.nextInt();
+			m.id=sc.nextInt();
 			sc.nextLine();
 			
-			System.out.print("Data: ");
-			LocalDate data=LocalDate.parse(sc.nextLine(),df);
+			boolean dataValida=false;
+			do {
+				System.out.print("Data: ");
+				try {
+					m.data=LocalDate.parse(sc.nextLine(),df);
+					dataValida=true;
+				} catch (Exception e) {
+					//se la data non è valida gestisco l'eccezione
+					System.out.println("Hai inserito una data non valida, riprova!");					
+				}
+			} while (!dataValida); 	//torno indietro se la data non è valida
+			
 			
 			System.out.print("Cod prodotto: ");
-			String codProd=sc.nextLine();
+			m.codiceProdotto=sc.nextLine();
 			
 			System.out.print("Cod movimento: ");
-			String codMov=sc.nextLine();
+			m.codiceMovimento=sc.nextLine();
 			
 			System.out.print("Quantità: ");
-			int quantità=sc.nextInt();
+			m.quantità=sc.nextInt();
 			sc.nextLine();
 			
 			
 			String sql="INSERT INTO movimenti(id, data, codProdotto, codMovimento, quantità) "
-					+ "VALUES(?, ?, ?, ?, ?)";		//il ? indica un parametro
+					+ "VALUES(?, ?, ?, ?, ?)";		//il ? indica un parametro (segnaposto)
 			
 			System.out.println("Tentativo di esecuzione INSERT");
 			try (PreparedStatement ps=conn.prepareStatement(sql)) {		//provo a creare l'istruzione sql
 				
 				//imposto i valori dei parametri				
-				ps.setInt(1, id);		//il primo parametro è l'id. NB: si parte dalla posizione 1
-				ps.setObject(2, data);	//il secondo parametro è la data
-				ps.setString(3, codProd);
-				ps.setString(4, codMov);
-				ps.setInt(5, quantità);
+				ps.setInt(1, m.id);		//il primo parametro è l'id. NB: si parte dalla posizione 1
+				ps.setDate(2, Date.valueOf(m.data));	//il secondo parametro è la data
+				ps.setString(3, m.codiceProdotto);
+				ps.setString(4, m.codiceMovimento);
+				ps.setInt(5, m.quantità);
 				
 				
 				int righeInteressate=ps.executeUpdate();	//eseguo l'istruzione
